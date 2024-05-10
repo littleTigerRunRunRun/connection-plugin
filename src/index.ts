@@ -22,6 +22,11 @@ type Requires =
   }>
   | { type: 'unmount', data: { element: HTMLElement } }
 
+export interface ConnectionPluginProps {
+  // 根据起点socket的信息，判断这个socket是否可以发出连线（比如需要限制input侧不可以连线）
+  canMakePreudo(socketData:SocketData):boolean
+}
+
 /**
  * Connection plugin. Responsible for user interaction with connections (creation, deletion)
  * @priority 9
@@ -39,9 +44,14 @@ export class ConnectionPlugin<Schemes extends ClassicScheme, K = Requires> exten
   private currentFlow: Flow<Schemes, any[]> | null = null
   private preudoconnection = createPseudoconnection({ isPseudo: true })
   private socketsCache = new Map<Element, SocketData>()
+  private props: ConnectionPluginProps
 
-  constructor() {
+  constructor(props?:ConnectionPluginProps) {
     super('connection')
+
+    this.props = props || {
+      canMakePreudo: () => true
+    }
   }
 
   /**
@@ -96,6 +106,9 @@ export class ConnectionPlugin<Schemes extends ClassicScheme, K = Requires> exten
       this.currentFlow = this.currentFlow || this.findPreset(pickedSocket)
 
       if (this.currentFlow) {
+        if (!this.currentFlow.getPickedSocket() && !this.props.canMakePreudo(pickedSocket)) {
+          return
+        }
         await this.currentFlow.pick({ socket: pickedSocket, event: type }, flowContext)
         this.preudoconnection.mount(this.areaPlugin)
       }
