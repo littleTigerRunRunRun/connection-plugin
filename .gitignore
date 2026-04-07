@@ -7,3 +7,4 @@ docs
 /coverage
 .rete-cli
 .sonar
+yarn.lock
